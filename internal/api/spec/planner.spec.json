@@ -1,0 +1,769 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "plann.er",
+    "description": "Especificações da API para o back-end da aplicação plann.er construída durante o NLW Journey da Rocketseat.",
+    "version": "1.0.0"
+  },
+  "components": {
+    "schemas": {
+      "ErrorSchema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": ["message"],
+        "additionalProperties": false,
+        "description": "Bad request"
+      },
+      "DefaultResponse": {
+        "enum": ["null"],
+        "nullable": true
+      },
+      "DefaultResponseWithId": {
+        "type": "object",
+        "properties": {
+          "activityId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["activityId"],
+        "additionalProperties": false
+      },
+      "ActivityItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "occurs_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "title", "occurs_at"],
+        "additionalProperties": false
+      },
+      "Activities": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "activities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityItem"
+            }
+          }
+        },
+        "required": ["date", "activities"],
+        "additionalProperties": false
+      },
+      "GetTripResponse": {
+        "type": "object",
+        "properties": {
+          "activities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Activities"
+            }
+          }
+        },
+        "required": ["activities"],
+        "additionalProperties": false
+      },
+      "InviteRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": ["email"],
+        "additionalProperties": false
+      },
+      "CreateActivityRequest": {
+        "type": "object",
+        "properties": {
+          "occurs_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": ["occurs_at", "title"],
+        "additionalProperties": false
+      },
+      "CreateLinkRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": ["title", "url"],
+        "additionalProperties": false
+      },
+      "CreateLinkResponse": {
+        "type": "object",
+        "properties": {
+          "linkId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["linkId"],
+        "additionalProperties": false
+      },
+      "CreateTripRequest": {
+        "type": "object",
+        "properties": {
+          "destination": {
+            "type": "string",
+            "minLength": 4
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "emails_to_invite": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          "owner_name": {
+            "type": "string"
+          },
+          "owner_email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "destination",
+          "starts_at",
+          "ends_at",
+          "emails_to_invite",
+          "owner_name",
+          "owner_email"
+        ],
+        "additionalProperties": false
+      },
+      "CreateTripResponse": {
+        "type": "object",
+        "properties": {
+          "tripId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": ["tripId"],
+        "additionalProperties": false
+      },
+      "TripDetailsResponse": {
+        "type": "object",
+        "properties": {
+          "trip": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "destination": {
+                "type": "string",
+                "minLength": 4
+              },
+              "starts_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "ends_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "is_confirmed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "destination",
+              "starts_at",
+              "ends_at",
+              "is_confirmed"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": ["trip"],
+        "additionalProperties": false
+      },
+      "UpdateTripRequest": {
+        "type": "object",
+        "properties": {
+          "destination": {
+            "type": "string",
+            "minLength": 4
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["destination", "starts_at", "ends_at"],
+        "additionalProperties": false
+      },
+      "TripParticipantsResponse": {
+        "type": "object",
+        "properties": {
+          "participants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "is_confirmed": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["id", "name", "email", "is_confirmed"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["participants"],
+        "additionalProperties": false
+      },
+      "TripLinksResponse": {
+        "type": "object",
+        "properties": {
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "required": ["id", "title", "url"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["links"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "paths": {
+    "/trips/{tripId}/confirm": {
+      "get": {
+        "summary": "Confirm a trip and send e-mail invitations.",
+        "tags": ["trips"],
+        "parameters": [
+          {
+            "name": "tripId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/participants/{participantId}/confirm": {
+      "patch": {
+        "summary": "Confirms a participant on a trip.",
+        "tags": ["participants"],
+        "parameters": [
+          {
+            "name": "participantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trips/{tripId}/invites": {
+      "post": {
+        "summary": "Invite someone to the trip.",
+        "tags": ["participants"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tripId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trips/{tripId}/activities": {
+      "post": {
+        "summary": "Create a trip activity.",
+        "tags": ["activities"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateActivityRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tripId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultResponseWithId"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Get a trip activities.",
+        "tags": ["activities"],
+        "description": "This route will return all the dates between the trip starts_at and ends_at dates, even those without activities.",
+        "parameters": [
+          {
+            "name": "tripId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetTripResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trips/{tripId}/links": {
+      "post": {
+        "summary": "Create a trip link.",
+        "tags": ["links"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLinkRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tripId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateLinkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Get a trip links.",
+        "tags": ["links"],
+        "parameters": [
+          {
+            "name": "tripId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripLinksResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trips": {
+      "post": {
+        "summary": "Create a new trip",
+        "tags": ["trips"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTripRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTripResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trips/{tripId}": {
+      "get": {
+        "summary": "Get a trip details.",
+        "tags": ["trips"],
+        "parameters": [
+          {
+            "name": "tripId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripDetailsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update a trip.",
+        "tags": ["trips"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTripRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tripId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trips/{tripId}/participants": {
+      "get": {
+        "summary": "Get a trip participants.",
+        "tags": ["participants"],
+        "parameters": [
+          {
+            "name": "tripId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripParticipantsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
