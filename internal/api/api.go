@@ -1,16 +1,54 @@
 package api
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"planner-go/internal/api/spec"
+	"planner-go/internal/pgstore"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"go.uber.org/zap"
 )
 
-type API struct{}
+type store interface {
+	GetParticipant(ctx context.Context, participantID uuid.UUID) (pgstore.Participant, error)
+	ConfirmParticipant(ctx context.Context, participantID uuid.UUID) error
+}
+
+type API struct {
+	store  store
+	logger *zap.Logger
+}
 
 // Confirms a participant on a trip.
 // (PATCH /participants/{participantId}/confirm)
 func (api API) PatchParticipantsParticipantIDConfirm(w http.ResponseWriter, r *http.Request, participantID string) *spec.Response {
-	panic("not implemented") // TODO: Implement
+	id, err := uuid.Parse(participantID)
+	if err != nil {
+		return spec.PatchParticipantsParticipantIDConfirmJSON400Response(spec.ErrorSchema{Message: "Invalid UUID"})
+	}
+
+	participant, err := api.store.GetParticipant(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return spec.PatchParticipantsParticipantIDConfirmJSON400Response(spec.ErrorSchema{Message: "Participant not found"})
+		}
+		api.logger.Error("Failed to get participant", zap.Error(err), zap.String("participant_id", participantID))
+		return spec.PatchParticipantsParticipantIDConfirmJSON400Response(spec.ErrorSchema{Message: "Something went wrong"})
+	}
+
+	if participant.IsConfirmed {
+		return spec.PatchParticipantsParticipantIDConfirmJSON400Response(spec.ErrorSchema{Message: "Participant already confirmed"})
+	}
+
+	if err := api.store.ConfirmParticipant(r.Context(), id); err != nil {
+		api.logger.Error("Failed to confirm participant", zap.Error(err), zap.String("participant_id", participantID))
+		return spec.PatchParticipantsParticipantIDConfirmJSON400Response(spec.ErrorSchema{Message: "Something went wrong"})
+	}
+
+	return spec.PatchParticipantsParticipantIDConfirmJSON204Response(nil)
 }
 
 // Create a new trip
