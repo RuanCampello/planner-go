@@ -3,13 +3,26 @@ services:
     image: postgres:latest
     restart: unless-stopped
     ports:
-      - 5433:5432
+      - 5432:5432
     environment:
       POSTGRES_USER: ${PLANNER_DATABASE_USER}
       POSTGRES_DB: ${PLANNER_DATABASE_NAME}
       POSTGRES_PASSWORD: ${PLANNER_DATABASE_PASSWORD}
     volumes:
       - db:/var/lib/postgresql/data
+
+  app: 
+    build: .
+    ports:
+      - 8080:8080
+    environment: 
+      PLANNER_DATABASE_HOST: ${PLANNER_DATABASE_HOST_DOCKER:-db}
+      PLANNER_DATABASE_NAME: ${PLANNER_DATABASE_NAME}
+      PLANNER_DATABASE_USER: ${PLANNER_DATABASE_USER}
+      PLANNER_DATABASE_PASSWORD: ${PLANNER_DATABASE_PASSWORD}
+      PLANNER_DATABASE_PORT: ${PLANNER_DATABASE_PORT:-5432}
+    depends_on:
+      - db
 
 volumes:
   db:
