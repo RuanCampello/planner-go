@@ -322,6 +322,17 @@ func (api API) PostTripsTripIDInvites(w http.ResponseWriter, r *http.Request, tr
 		return spec.PostTripsTripIDInvitesJSON400Response(spec.Error{Message: "Invalid UUID"})
 	}
 
+	participants, err := api.store.GetParticipants(r.Context(), id)
+	if err != nil {
+		return spec.PostTripsTripIDInvitesJSON400Response(spec.Error{Message: "Failed to get participants"})
+	}
+
+	for _, participant := range participants {
+		if participant.Email == string(body.Email) {
+			return spec.PostTripsTripIDInvitesJSON400Response(spec.Error{Message: "Participant has already joined the trip"})
+		}
+	}
+
 	participantId, err := api.store.InviteParticipantToTrip(r.Context(), pgstore.InviteParticipantToTripParams{
 		TripID: id,
 		Email:  string(body.Email),
