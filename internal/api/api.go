@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/mail"
 	"planner-go/internal/api/spec"
 	"planner-go/internal/pgstore"
+	"strings"
 	"time"
 
+	"github.com/discord-gophers/goapi-gen/types"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -24,6 +27,7 @@ type store interface {
 	UpdateTrip(context.Context, pgstore.UpdateTripParams) error
 	//participant functions
 	GetParticipant(context.Context, uuid.UUID) (pgstore.Participant, error)
+	GetParticipants(context.Context, uuid.UUID) ([]pgstore.Participant, error)
 	ConfirmParticipant(context.Context, uuid.UUID) error
 	//activities functions
 	GetTripActivities(context.Context, uuid.UUID) ([]pgstore.Activity, error)
@@ -325,5 +329,37 @@ func (api API) PostTripsTripIDLinks(w http.ResponseWriter, r *http.Request, trip
 // Get a trip participants.
 // (GET /trips/{tripId}/participants)
 func (api API) GetTripsTripIDParticipants(w http.ResponseWriter, r *http.Request, tripID string) *spec.Response {
-	panic("not implemented") // TODO: Implement
+	id, err := uuid.Parse(tripID)
+	if err != nil {
+		return spec.GetTripsTripIDParticipantsJSON400Response(spec.Error{Message: "Invalid UUID"})
+	}
+
+	participants, err := api.store.GetParticipants(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return spec.GetTripsTripIDParticipantsJSON400Response(spec.Error{Message: "No trip found"})
+		}
+		api.logger.Error("Failed to get trip participants", zap.Error(err), zap.String("trip_id", tripID))
+		return spec.GetTripsTripIDParticipantsJSON400Response(spec.Error{Message: "Something went wrong"})
+	}
+
+	var response spec.GetTripParticipantsResponse
+	response.Participants = make([]spec.GetTripParticipantsResponseArray, len(participants))
+
+	for i, participant := range participants {
+		var name string
+		formattedEmail, err := mail.ParseAddress(participant.Email)
+		if err == nil {
+			addr := formattedEmail.Address
+			name = addr[:strings.Index(addr, "@")]
+		}
+		response.Participants[i] = spec.GetTripParticipantsResponseArray{
+			ID:          participant.ID.String(),
+			Email:       types.Email(participant.Email),
+			IsConfirmed: participant.IsConfirmed,
+			Name:        &name,
+		}
+	}
+
+	return spec.GetTripsTripIDParticipantsJSON200Response(response)
 }
