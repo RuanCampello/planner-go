@@ -178,9 +178,14 @@ func (api API) GetTripsTripIDActivities(w http.ResponseWriter, r *http.Request, 
 	}
 
 	activities, err := api.store.GetTripActivities(r.Context(), id)
+
+	if !(len(activities) > 0) {
+		return spec.GetTripsTripIDActivitiesJSON400Response(spec.Error{Message: "No activities found"})
+	}
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return spec.GetTripsTripIDActivitiesJSON400Response(spec.Error{Message: "No activities found"})
+			return spec.GetTripsTripIDActivitiesJSON400Response(spec.Error{Message: "Trip not found"})
 		}
 		api.logger.Error("Failed to get trip participants", zap.Error(err), zap.String("trip_id", tripID))
 		return spec.GetTripsTripIDActivitiesJSON400Response(spec.Error{Message: "Something went wrong"})
