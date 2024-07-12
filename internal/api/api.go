@@ -25,6 +25,7 @@ type store interface {
 	GetTrip(context.Context, uuid.UUID) (pgstore.Trip, error)
 	CreateTrip(context.Context, *pgxpool.Pool, spec.CreateTripRequest) (uuid.UUID, error)
 	UpdateTrip(context.Context, pgstore.UpdateTripParams) error
+	InviteParticipantToTrip(context.Context, pgstore.InviteParticipantToTripParams) (uuid.UUID, error)
 	//participant functions
 	GetParticipant(context.Context, uuid.UUID) (pgstore.Participant, error)
 	GetParticipants(context.Context, uuid.UUID) ([]pgstore.Participant, error)
@@ -311,7 +312,37 @@ func (api API) GetTripsTripIDConfirm(w http.ResponseWriter, r *http.Request, tri
 // Invite someone to the trip.
 // (POST /trips/{tripId}/invites)
 func (api API) PostTripsTripIDInvites(w http.ResponseWriter, r *http.Request, tripID string) *spec.Response {
-	panic("not implemented") // TODO: Implement
+	var body spec.PostTripsTripIDInvitesJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		return spec.PostTripsTripIDInvitesJSON400Response(spec.Error{Message: "Invalid JSON Body"})
+	}
+
+	id, err := uuid.Parse(tripID)
+	if err != nil {
+		return spec.PostTripsTripIDInvitesJSON400Response(spec.Error{Message: "Invalid UUID"})
+	}
+
+	participantId, err := api.store.InviteParticipantToTrip(r.Context(), pgstore.InviteParticipantToTripParams{
+		TripID: id,
+		Email:  string(body.Email),
+	})
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			spec.PostTripsTripIDInvitesJSON400Response(spec.Error{Message: "Trip not found"})
+		}
+		api.logger.Error("Failed to invite participant for the trip",
+			zap.Error(err),
+			zap.String("trip_id", tripID),
+			zap.String("participant_id", participantId.String()),
+			zap.String("participant_email", string(body.Email)),
+		)
+		return spec.PostTripsTripIDInvitesJSON400Response(spec.Error{Message: "Something went wrong"})
+	}
+
+	//TODO: send email to invited participant
+
+	return spec.PostTripsTripIDInvitesJSON201Response(nil)
 }
 
 // Get a trip links.
