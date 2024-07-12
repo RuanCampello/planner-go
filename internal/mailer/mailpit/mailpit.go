@@ -107,10 +107,10 @@ func (mp Mailipt) SendConfirmEmailToParticipants(tripId uuid.UUID) error {
 	return nil
 }
 
-func (mp Mailipt) SendConfirmEmailToInvitedParticipant(tripId uuid.UUID) error {
+func (mp Mailipt) SendConfirmEmailToInvitedParticipant(tripId, participantId uuid.UUID) error {
 	ctx := context.Background()
 
-	participant, err := mp.store.GetParticipant(ctx, tripId)
+	participant, err := mp.store.GetParticipant(ctx, participantId)
 	if err != nil {
 		return fmt.Errorf("mailpit: failed to get trip participants for SendConfirmEmailToInvitedParticipant: %w", err)
 	}
