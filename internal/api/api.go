@@ -20,12 +20,14 @@ import (
 type store interface {
 	//trip functions
 	GetTrip(context.Context, uuid.UUID) (pgstore.Trip, error)
-	GetTripActivities(context.Context, uuid.UUID) ([]pgstore.Activity, error)
 	CreateTrip(context.Context, *pgxpool.Pool, spec.CreateTripRequest) (uuid.UUID, error)
 	UpdateTrip(context.Context, pgstore.UpdateTripParams) error
 	//participant functions
 	GetParticipant(context.Context, uuid.UUID) (pgstore.Participant, error)
 	ConfirmParticipant(context.Context, uuid.UUID) error
+	//activities functions
+	GetTripActivities(context.Context, uuid.UUID) ([]pgstore.Activity, error)
+	CreateActivity(context.Context, pgstore.CreateActivityParams) (uuid.UUID, error)
 }
 
 type mailer interface {
@@ -226,7 +228,36 @@ func (api API) GetTripsTripIDActivities(w http.ResponseWriter, r *http.Request, 
 // Create a trip activity.
 // (POST /trips/{tripId}/activities)
 func (api API) PostTripsTripIDActivities(w http.ResponseWriter, r *http.Request, tripID string) *spec.Response {
-	panic("not implemented") // TODO: Implement
+	var body spec.PostTripsTripIDActivitiesJSONRequestBody
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		return spec.GetTripsTripIDActivitiesJSON400Response(spec.Error{Message: "Invalid JSON Body"})
+	}
+
+	if err := api.validator.Struct(body); err != nil {
+		return spec.GetTripsTripIDActivitiesJSON400Response(spec.Error{Message: "Invalid input field" + err.Error()})
+	}
+
+	id, err := uuid.Parse(tripID)
+	if err != nil {
+		return spec.PostTripsTripIDActivitiesJSON400Response(spec.Error{Message: "Invalid UUID"})
+	}
+
+	activityId, err := api.store.CreateActivity(r.Context(), pgstore.CreateActivityParams{
+		TripID:   id,
+		Title:    body.Title,
+		OccursAt: pgtype.Timestamp{Time: body.OccursAt, Valid: true},
+	})
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			spec.PostTripsTripIDActivitiesJSON400Response(spec.Error{Message: "Trip not found"})
+		}
+		api.logger.Error("Failed to create activity", zap.Error(err), zap.String("trip_id", tripID))
+		return spec.PostTripsTripIDActivitiesJSON400Response(spec.Error{Message: "Something went wrong"})
+	}
+
+	return spec.PostTripsTripIDActivitiesJSON201Response(spec.CreateActivityResponse{ActivityID: activityId.String()})
 }
 
 // Confirm a trip and send e-mail invitations.
