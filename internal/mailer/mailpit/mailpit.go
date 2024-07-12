@@ -12,6 +12,7 @@ import (
 
 type store interface {
 	GetTrip(context.Context, uuid.UUID) (pgstore.Trip, error)
+	GetParticipants(context.Context, uuid.UUID) ([]pgstore.Participant, error)
 }
 
 type Mailipt struct {
@@ -56,6 +57,51 @@ func (mp Mailipt) SendConfirmEmailToTripOwner(tripId uuid.UUID) error {
 
 	if err := client.DialAndSend(msg); err != nil {
 		return fmt.Errorf("mailpit: failed to send email: %w", err)
+	}
+
+	return nil
+}
+
+func (mp Mailipt) SendConfirmEmailToParticipants(tripId uuid.UUID) error {
+	ctx := context.Background()
+
+	participants, err := mp.store.GetParticipants(ctx, tripId)
+	if err != nil {
+		return fmt.Errorf("mailpit: failed to get trip participants for SendConfirmEmailToParticipants: %w", err)
+	}
+
+	trip, err := mp.store.GetTrip(ctx, tripId)
+	if err != nil {
+		return fmt.Errorf("mailpit: failed to get trip for SendConfirmEmailToParticipants: %w", err)
+	}
+
+	client, err := mail.NewClient("mailpit", mail.WithTLSPortPolicy(mail.NoTLS), mail.WithPort(1025))
+
+	if err != nil {
+		return fmt.Errorf("mailpit: failed to set client: %w", err)
+	}
+
+	for _, participant := range participants {
+		msg := mail.NewMsg()
+		if err := msg.From("mailpit@planner.com"); err != nil {
+			return fmt.Errorf("mailpit: failed to set From in SendConfirmEmailToParticipants: %w", err)
+		}
+
+		if err := msg.To(participant.Email); err != nil {
+			return fmt.Errorf("mailpit: failed to set To in SendConfirmEmailToParticipants: %w", err)
+		}
+
+		msg.Subject("Confirm your trip")
+		msg.SetBodyString(mail.TypeTextPlain, fmt.Sprintf(`
+			You have been invited for a trip to %s by %s.
+			Click in the button below to confirm it.
+		`,
+			trip.Destination, trip.OwnerName,
+		))
+
+		if err := client.DialAndSend(msg); err != nil {
+			return fmt.Errorf("mailpit: failed to send email: %w", err)
+		}
 	}
 
 	return nil
