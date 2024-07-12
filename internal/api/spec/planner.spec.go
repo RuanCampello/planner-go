@@ -23,29 +23,21 @@ import (
 	"github.com/go-chi/render"
 )
 
-// Activities defines model for Activities.
-type Activities struct {
-	Activities []ActivityItem `json:"activities"`
-	Date       time.Time      `json:"date"`
-}
-
-// ActivityItem defines model for ActivityItem.
-type ActivityItem struct {
-	ID       string    `json:"id"`
-	OccursAt time.Time `json:"occurs_at"`
-	Title    string    `json:"title"`
-}
-
 // CreateActivityRequest defines model for CreateActivityRequest.
 type CreateActivityRequest struct {
-	OccursAt time.Time `json:"occurs_at"`
-	Title    string    `json:"title"`
+	OccursAt time.Time `json:"occurs_at" validate:"required"`
+	Title    string    `json:"title" validate:"required"`
+}
+
+// CreateActivityResponse defines model for CreateActivityResponse.
+type CreateActivityResponse struct {
+	ActivityID string `json:"activityId"`
 }
 
 // CreateLinkRequest defines model for CreateLinkRequest.
 type CreateLinkRequest struct {
-	Title string `json:"title"`
-	URL   string `json:"url"`
+	Title string `json:"title" validate:"required"`
+	URL   string `json:"url" validate:"required,url"`
 }
 
 // CreateLinkResponse defines model for CreateLinkResponse.
@@ -55,12 +47,12 @@ type CreateLinkResponse struct {
 
 // CreateTripRequest defines model for CreateTripRequest.
 type CreateTripRequest struct {
-	Destination    string                `json:"destination"`
-	EmailsToInvite []openapi_types.Email `json:"emails_to_invite"`
-	EndsAt         time.Time             `json:"ends_at"`
-	OwnerEmail     openapi_types.Email   `json:"owner_email"`
-	OwnerName      string                `json:"owner_name"`
-	StartsAt       time.Time             `json:"starts_at"`
+	Destination    string                `json:"destination" validate:"required,min=4"`
+	EmailsToInvite []openapi_types.Email `json:"emails_to_invite" validate:"required,dive,email"`
+	EndsAt         time.Time             `json:"ends_at" validate:"required"`
+	OwnerEmail     openapi_types.Email   `json:"owner_email" validate:"required,email"`
+	OwnerName      string                `json:"owner_name" validate:"required"`
+	StartsAt       time.Time             `json:"starts_at" validate:"required"`
 }
 
 // CreateTripResponse defines model for CreateTripResponse.
@@ -68,64 +60,78 @@ type CreateTripResponse struct {
 	TripID string `json:"tripId"`
 }
 
-// DefaultResponse defines model for DefaultResponse.
-type DefaultResponse interface{}
-
-// DefaultResponseWithID defines model for DefaultResponseWithId.
-type DefaultResponseWithID struct {
-	ActivityID string `json:"activityId"`
-}
-
 // Bad request
-type ErrorSchema struct {
+type Error struct {
 	Message string `json:"message"`
 }
 
-// GetTripResponse defines model for GetTripResponse.
-type GetTripResponse struct {
-	Activities []Activities `json:"activities"`
+// GetLinksResponse defines model for GetLinksResponse.
+type GetLinksResponse struct {
+	Links []GetLinksResponseArray `json:"links"`
 }
 
-// InviteRequest defines model for InviteRequest.
-type InviteRequest struct {
-	Email openapi_types.Email `json:"email"`
+// GetLinksResponseArray defines model for GetLinksResponseArray.
+type GetLinksResponseArray struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+	URL   string `json:"url"`
 }
 
-// TripDetailsResponse defines model for TripDetailsResponse.
-type TripDetailsResponse struct {
-	Trip struct {
-		Destination string    `json:"destination"`
-		EndsAt      time.Time `json:"ends_at"`
-		ID          string    `json:"id"`
-		IsConfirmed bool      `json:"is_confirmed"`
-		StartsAt    time.Time `json:"starts_at"`
-	} `json:"trip"`
+// GetTripActivitiesResponse defines model for GetTripActivitiesResponse.
+type GetTripActivitiesResponse struct {
+	Activities []GetTripActivitiesResponseOuterArray `json:"activities"`
 }
 
-// TripLinksResponse defines model for TripLinksResponse.
-type TripLinksResponse struct {
-	Links []struct {
-		ID    string `json:"id"`
-		Title string `json:"title"`
-		URL   string `json:"url"`
-	} `json:"links"`
+// GetTripActivitiesResponseInnerArray defines model for GetTripActivitiesResponseInnerArray.
+type GetTripActivitiesResponseInnerArray struct {
+	ID       string    `json:"id"`
+	OccursAt time.Time `json:"occurs_at"`
+	Title    string    `json:"title"`
 }
 
-// TripParticipantsResponse defines model for TripParticipantsResponse.
-type TripParticipantsResponse struct {
-	Participants []struct {
-		Email       openapi_types.Email `json:"email"`
-		ID          string              `json:"id"`
-		IsConfirmed bool                `json:"is_confirmed"`
-		Name        *string             `json:"name"`
-	} `json:"participants"`
+// GetTripActivitiesResponseOuterArray defines model for GetTripActivitiesResponseOuterArray.
+type GetTripActivitiesResponseOuterArray struct {
+	Activities []GetTripActivitiesResponseInnerArray `json:"activities"`
+	Date       time.Time                             `json:"date"`
+}
+
+// GetTripDetailsResponse defines model for GetTripDetailsResponse.
+type GetTripDetailsResponse struct {
+	Trip GetTripDetailsResponseTripObj `json:"trip"`
+}
+
+// GetTripDetailsResponseTripObj defines model for GetTripDetailsResponseTripObj.
+type GetTripDetailsResponseTripObj struct {
+	Destination string    `json:"destination"`
+	EndsAt      time.Time `json:"ends_at"`
+	ID          string    `json:"id"`
+	IsConfirmed bool      `json:"is_confirmed"`
+	StartsAt    time.Time `json:"starts_at"`
+}
+
+// GetTripParticipantsResponse defines model for GetTripParticipantsResponse.
+type GetTripParticipantsResponse struct {
+	Participants []GetTripParticipantsResponseArray `json:"participants"`
+}
+
+// GetTripParticipantsResponseArray defines model for GetTripParticipantsResponseArray.
+type GetTripParticipantsResponseArray struct {
+	Email       openapi_types.Email `json:"email"`
+	ID          string              `json:"id"`
+	IsConfirmed bool                `json:"is_confirmed"`
+	Name        *string             `json:"name"`
+}
+
+// InviteParticipantRequest defines model for InviteParticipantRequest.
+type InviteParticipantRequest struct {
+	Email openapi_types.Email `json:"email" validate:"required,email"`
 }
 
 // UpdateTripRequest defines model for UpdateTripRequest.
 type UpdateTripRequest struct {
-	Destination string    `json:"destination"`
-	EndsAt      time.Time `json:"ends_at"`
-	StartsAt    time.Time `json:"starts_at"`
+	Destination string    `json:"destination" validate:"required,min=4"`
+	EndsAt      time.Time `json:"ends_at" validate:"required"`
+	StartsAt    time.Time `json:"starts_at" validate:"required"`
 }
 
 // PostTripsJSONBody defines parameters for PostTrips.
@@ -138,7 +144,7 @@ type PutTripsTripIDJSONBody UpdateTripRequest
 type PostTripsTripIDActivitiesJSONBody CreateActivityRequest
 
 // PostTripsTripIDInvitesJSONBody defines parameters for PostTripsTripIDInvites.
-type PostTripsTripIDInvitesJSONBody InviteRequest
+type PostTripsTripIDInvitesJSONBody InviteParticipantRequest
 
 // PostTripsTripIDLinksJSONBody defines parameters for PostTripsTripIDLinks.
 type PostTripsTripIDLinksJSONBody CreateLinkRequest
@@ -226,7 +232,7 @@ func (resp *Response) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 // PatchParticipantsParticipantIDConfirmJSON204Response is a constructor method for a PatchParticipantsParticipantIDConfirm response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PatchParticipantsParticipantIDConfirmJSON204Response(body DefaultResponse) *Response {
+func PatchParticipantsParticipantIDConfirmJSON204Response(body interface{}) *Response {
 	return &Response{
 		body:        body,
 		Code:        204,
@@ -236,7 +242,7 @@ func PatchParticipantsParticipantIDConfirmJSON204Response(body DefaultResponse) 
 
 // PatchParticipantsParticipantIDConfirmJSON400Response is a constructor method for a PatchParticipantsParticipantIDConfirm response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PatchParticipantsParticipantIDConfirmJSON400Response(body ErrorSchema) *Response {
+func PatchParticipantsParticipantIDConfirmJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -256,7 +262,7 @@ func PostTripsJSON201Response(body CreateTripResponse) *Response {
 
 // PostTripsJSON400Response is a constructor method for a PostTrips response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostTripsJSON400Response(body ErrorSchema) *Response {
+func PostTripsJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -266,7 +272,7 @@ func PostTripsJSON400Response(body ErrorSchema) *Response {
 
 // GetTripsTripIDJSON200Response is a constructor method for a GetTripsTripID response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetTripsTripIDJSON200Response(body TripDetailsResponse) *Response {
+func GetTripsTripIDJSON200Response(body GetTripDetailsResponse) *Response {
 	return &Response{
 		body:        body,
 		Code:        200,
@@ -276,7 +282,7 @@ func GetTripsTripIDJSON200Response(body TripDetailsResponse) *Response {
 
 // GetTripsTripIDJSON400Response is a constructor method for a GetTripsTripID response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetTripsTripIDJSON400Response(body ErrorSchema) *Response {
+func GetTripsTripIDJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -286,7 +292,7 @@ func GetTripsTripIDJSON400Response(body ErrorSchema) *Response {
 
 // PutTripsTripIDJSON204Response is a constructor method for a PutTripsTripID response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PutTripsTripIDJSON204Response(body DefaultResponse) *Response {
+func PutTripsTripIDJSON204Response(body interface{}) *Response {
 	return &Response{
 		body:        body,
 		Code:        204,
@@ -296,7 +302,7 @@ func PutTripsTripIDJSON204Response(body DefaultResponse) *Response {
 
 // PutTripsTripIDJSON400Response is a constructor method for a PutTripsTripID response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PutTripsTripIDJSON400Response(body ErrorSchema) *Response {
+func PutTripsTripIDJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -306,7 +312,7 @@ func PutTripsTripIDJSON400Response(body ErrorSchema) *Response {
 
 // GetTripsTripIDActivitiesJSON200Response is a constructor method for a GetTripsTripIDActivities response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetTripsTripIDActivitiesJSON200Response(body GetTripResponse) *Response {
+func GetTripsTripIDActivitiesJSON200Response(body GetTripActivitiesResponse) *Response {
 	return &Response{
 		body:        body,
 		Code:        200,
@@ -316,7 +322,7 @@ func GetTripsTripIDActivitiesJSON200Response(body GetTripResponse) *Response {
 
 // GetTripsTripIDActivitiesJSON400Response is a constructor method for a GetTripsTripIDActivities response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetTripsTripIDActivitiesJSON400Response(body ErrorSchema) *Response {
+func GetTripsTripIDActivitiesJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -326,7 +332,7 @@ func GetTripsTripIDActivitiesJSON400Response(body ErrorSchema) *Response {
 
 // PostTripsTripIDActivitiesJSON201Response is a constructor method for a PostTripsTripIDActivities response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostTripsTripIDActivitiesJSON201Response(body DefaultResponseWithID) *Response {
+func PostTripsTripIDActivitiesJSON201Response(body CreateActivityResponse) *Response {
 	return &Response{
 		body:        body,
 		Code:        201,
@@ -336,7 +342,7 @@ func PostTripsTripIDActivitiesJSON201Response(body DefaultResponseWithID) *Respo
 
 // PostTripsTripIDActivitiesJSON400Response is a constructor method for a PostTripsTripIDActivities response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostTripsTripIDActivitiesJSON400Response(body ErrorSchema) *Response {
+func PostTripsTripIDActivitiesJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -346,7 +352,7 @@ func PostTripsTripIDActivitiesJSON400Response(body ErrorSchema) *Response {
 
 // GetTripsTripIDConfirmJSON204Response is a constructor method for a GetTripsTripIDConfirm response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetTripsTripIDConfirmJSON204Response(body DefaultResponse) *Response {
+func GetTripsTripIDConfirmJSON204Response(body interface{}) *Response {
 	return &Response{
 		body:        body,
 		Code:        204,
@@ -356,7 +362,7 @@ func GetTripsTripIDConfirmJSON204Response(body DefaultResponse) *Response {
 
 // GetTripsTripIDConfirmJSON400Response is a constructor method for a GetTripsTripIDConfirm response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetTripsTripIDConfirmJSON400Response(body ErrorSchema) *Response {
+func GetTripsTripIDConfirmJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -366,7 +372,7 @@ func GetTripsTripIDConfirmJSON400Response(body ErrorSchema) *Response {
 
 // PostTripsTripIDInvitesJSON201Response is a constructor method for a PostTripsTripIDInvites response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostTripsTripIDInvitesJSON201Response(body DefaultResponse) *Response {
+func PostTripsTripIDInvitesJSON201Response(body interface{}) *Response {
 	return &Response{
 		body:        body,
 		Code:        201,
@@ -376,7 +382,7 @@ func PostTripsTripIDInvitesJSON201Response(body DefaultResponse) *Response {
 
 // PostTripsTripIDInvitesJSON400Response is a constructor method for a PostTripsTripIDInvites response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostTripsTripIDInvitesJSON400Response(body ErrorSchema) *Response {
+func PostTripsTripIDInvitesJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -386,7 +392,7 @@ func PostTripsTripIDInvitesJSON400Response(body ErrorSchema) *Response {
 
 // GetTripsTripIDLinksJSON200Response is a constructor method for a GetTripsTripIDLinks response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetTripsTripIDLinksJSON200Response(body TripLinksResponse) *Response {
+func GetTripsTripIDLinksJSON200Response(body GetLinksResponse) *Response {
 	return &Response{
 		body:        body,
 		Code:        200,
@@ -396,7 +402,7 @@ func GetTripsTripIDLinksJSON200Response(body TripLinksResponse) *Response {
 
 // GetTripsTripIDLinksJSON400Response is a constructor method for a GetTripsTripIDLinks response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetTripsTripIDLinksJSON400Response(body ErrorSchema) *Response {
+func GetTripsTripIDLinksJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -416,7 +422,7 @@ func PostTripsTripIDLinksJSON201Response(body CreateLinkResponse) *Response {
 
 // PostTripsTripIDLinksJSON400Response is a constructor method for a PostTripsTripIDLinks response.
 // A *Response is returned with the configured status code and content type from the spec.
-func PostTripsTripIDLinksJSON400Response(body ErrorSchema) *Response {
+func PostTripsTripIDLinksJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -426,7 +432,7 @@ func PostTripsTripIDLinksJSON400Response(body ErrorSchema) *Response {
 
 // GetTripsTripIDParticipantsJSON200Response is a constructor method for a GetTripsTripIDParticipants response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetTripsTripIDParticipantsJSON200Response(body TripParticipantsResponse) *Response {
+func GetTripsTripIDParticipantsJSON200Response(body GetTripParticipantsResponse) *Response {
 	return &Response{
 		body:        body,
 		Code:        200,
@@ -436,7 +442,7 @@ func GetTripsTripIDParticipantsJSON200Response(body TripParticipantsResponse) *R
 
 // GetTripsTripIDParticipantsJSON400Response is a constructor method for a GetTripsTripIDParticipants response.
 // A *Response is returned with the configured status code and content type from the spec.
-func GetTripsTripIDParticipantsJSON400Response(body ErrorSchema) *Response {
+func GetTripsTripIDParticipantsJSON400Response(body Error) *Response {
 	return &Response{
 		body:        body,
 		Code:        400,
@@ -916,29 +922,30 @@ func WithErrorHandler(handler func(w http.ResponseWriter, r *http.Request, err e
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
