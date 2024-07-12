@@ -13,6 +13,7 @@ import (
 type store interface {
 	GetTrip(context.Context, uuid.UUID) (pgstore.Trip, error)
 	GetParticipants(context.Context, uuid.UUID) ([]pgstore.Participant, error)
+	GetParticipant(context.Context, uuid.UUID) (pgstore.Participant, error)
 }
 
 type Mailipt struct {
@@ -76,7 +77,6 @@ func (mp Mailipt) SendConfirmEmailToParticipants(tripId uuid.UUID) error {
 	}
 
 	client, err := mail.NewClient("mailpit", mail.WithTLSPortPolicy(mail.NoTLS), mail.WithPort(1025))
-
 	if err != nil {
 		return fmt.Errorf("mailpit: failed to set client: %w", err)
 	}
@@ -102,6 +102,47 @@ func (mp Mailipt) SendConfirmEmailToParticipants(tripId uuid.UUID) error {
 		if err := client.DialAndSend(msg); err != nil {
 			return fmt.Errorf("mailpit: failed to send email: %w", err)
 		}
+	}
+
+	return nil
+}
+
+func (mp Mailipt) SendConfirmEmailToInvitedParticipant(tripId uuid.UUID) error {
+	ctx := context.Background()
+
+	participant, err := mp.store.GetParticipant(ctx, tripId)
+	if err != nil {
+		return fmt.Errorf("mailpit: failed to get trip participants for SendConfirmEmailToInvitedParticipant: %w", err)
+	}
+
+	trip, err := mp.store.GetTrip(ctx, tripId)
+	if err != nil {
+		return fmt.Errorf("mailpit: failed to get trip for SendConfirmEmailToInvitedParticipant: %w", err)
+	}
+
+	msg := mail.NewMsg()
+	if err := msg.From("mailpit@planner.com"); err != nil {
+		return fmt.Errorf("mailpit: failed to set From in SendConfirmEmailToInvitedParticipant: %w", err)
+	}
+	if err := msg.To(participant.Email); err != nil {
+		return fmt.Errorf("mailpit: failed to set To in SendConfirmEmailToInvitedParticipant: %w", err)
+	}
+
+	msg.Subject("Confirm your trip")
+	msg.SetBodyString(mail.TypeTextPlain, fmt.Sprintf(`
+		You have been invited for a trip to %s by %s.
+		Click in the button below to confirm it.
+	`,
+		trip.Destination, trip.OwnerName,
+	))
+
+	client, err := mail.NewClient("mailpit", mail.WithTLSPortPolicy(mail.NoTLS), mail.WithPort(1025))
+	if err != nil {
+		return fmt.Errorf("mailpit: failed to set client: %w", err)
+	}
+
+	if err := client.DialAndSend(msg); err != nil {
+		return fmt.Errorf("mailpit: failed to send email: %w", err)
 	}
 
 	return nil
