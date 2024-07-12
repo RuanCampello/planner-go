@@ -32,6 +32,7 @@ type store interface {
 
 type mailer interface {
 	SendConfirmEmailToTripOwner(uuid.UUID) error
+	SendConfirmEmailToParticipants(uuid.UUID) error
 }
 
 type API struct {
@@ -292,7 +293,13 @@ func (api API) GetTripsTripIDConfirm(w http.ResponseWriter, r *http.Request, tri
 		return spec.GetTripsTripIDConfirmJSON400Response(spec.Error{Message: "Something went wrong"})
 	}
 
-	// TODO: send email to participants
+	go func() {
+		if err := api.mailer.SendConfirmEmailToParticipants(id); err != nil {
+			api.logger.Error("Failed to send email on GetTripsTripIDConfirm",
+				zap.Error(err),
+				zap.String("trip_id", tripID))
+		}
+	}()
 
 	return spec.GetTripsTripIDConfirmJSON204Response(nil)
 }
