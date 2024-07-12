@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"planner-go/internal/api/spec"
 	"planner-go/internal/pgstore"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -19,6 +20,7 @@ import (
 type store interface {
 	//trip functions
 	GetTrip(context.Context, uuid.UUID) (pgstore.Trip, error)
+	GetTripActivities(context.Context, uuid.UUID) ([]pgstore.Activity, error)
 	CreateTrip(context.Context, *pgxpool.Pool, spec.CreateTripRequest) (uuid.UUID, error)
 	UpdateTrip(context.Context, pgstore.UpdateTripParams) error
 	//participant functions
@@ -170,7 +172,50 @@ func (api API) PutTripsTripID(w http.ResponseWriter, r *http.Request, tripID str
 // Get a trip activities.
 // (GET /trips/{tripId}/activities)
 func (api API) GetTripsTripIDActivities(w http.ResponseWriter, r *http.Request, tripID string) *spec.Response {
-	panic("not implemented") // TODO: Implement
+	id, err := uuid.Parse(tripID)
+	if err != nil {
+		return spec.GetTripsTripIDActivitiesJSON400Response(spec.Error{Message: "Invalid UUID"})
+	}
+
+	activities, err := api.store.GetTripActivities(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return spec.GetTripsTripIDActivitiesJSON400Response(spec.Error{Message: "No activities found"})
+		}
+		api.logger.Error("Failed to get trip participants", zap.Error(err), zap.String("trip_id", tripID))
+		return spec.GetTripsTripIDActivitiesJSON400Response(spec.Error{Message: "Something went wrong"})
+	}
+
+	var response spec.GetTripActivitiesResponse
+
+	//group activities by date
+	groupedAct := make(map[string][]pgstore.Activity)
+
+	for _, activity := range activities {
+		date := activity.OccursAt.Time.Format(time.DateOnly)
+		groupedAct[date] = append(groupedAct[date], activity)
+	}
+
+	//format activities for response
+	for dtString, actsOnDate := range groupedAct {
+		var inActs []spec.GetTripActivitiesResponseInnerArray
+
+		for _, act := range actsOnDate {
+			inActs = append(inActs, spec.GetTripActivitiesResponseInnerArray{
+				ID:       act.ID.String(),
+				Title:    act.Title,
+				OccursAt: act.OccursAt.Time,
+			})
+		}
+
+		date, _ := time.Parse(time.DateOnly, dtString)
+		response.Activities = append(response.Activities, spec.GetTripActivitiesResponseOuterArray{
+			Date:       date,
+			Activities: inActs,
+		})
+	}
+
+	return spec.GetTripsTripIDActivitiesJSON200Response(response)
 }
 
 // Create a trip activity.
