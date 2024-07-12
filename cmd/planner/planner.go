@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"planner-go/internal/api"
 	"planner-go/internal/api/spec"
+	"planner-go/internal/mailer/mailpit"
 	"syscall"
 	"time"
 
@@ -65,7 +66,7 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	si := api.NewApi(pool, logger)
+	si := api.NewApi(pool, logger, mailpit.NewMailpit(pool))
 	r := chi.NewMux()
 	r.Use(middleware.RequestID, middleware.Recoverer)
 	r.Mount("/", spec.Handler(&si))
