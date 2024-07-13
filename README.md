@@ -391,9 +391,7 @@ To run the plann.er API, you can use Docker Compose. Follow these steps to get t
 ```json
 {
   "destination": "Los Angeles",
-  "starts_at": "2024-08-01T00:00:00Z
-
-",
+  "starts_at": "2024-08-01T00:00:00Z",
   "ends_at": "2024-08-05T00:00:00Z"
 }
 ```
