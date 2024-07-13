@@ -33,6 +33,9 @@ type store interface {
 	//activities functions
 	GetTripActivities(context.Context, uuid.UUID) ([]pgstore.Activity, error)
 	CreateActivity(context.Context, pgstore.CreateActivityParams) (uuid.UUID, error)
+	//trips functions
+	GetTripLinks(context.Context, uuid.UUID) ([]pgstore.Link, error)
+	CreateTripLink(context.Context, pgstore.CreateTripLinkParams) (uuid.UUID, error)
 }
 
 type mailer interface {
@@ -366,13 +369,64 @@ func (api API) PostTripsTripIDInvites(w http.ResponseWriter, r *http.Request, tr
 // Get a trip links.
 // (GET /trips/{tripId}/links)
 func (api API) GetTripsTripIDLinks(w http.ResponseWriter, r *http.Request, tripID string) *spec.Response {
-	panic("not implemented") // TODO: Implement
+	id, err := uuid.Parse(tripID)
+	if err != nil {
+		return spec.GetTripsTripIDLinksJSON400Response(spec.Error{Message: "Invalid JSON Body"})
+	}
+
+	links, err := api.store.GetTripLinks(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return spec.GetTripsTripIDLinksJSON400Response(spec.Error{Message: "Trip not found"})
+		}
+		api.logger.Error("Failed to get trip links", zap.Error(err), zap.String("trip_id", tripID))
+		return spec.GetTripsTripIDLinksJSON400Response(spec.Error{Message: "Something went wrong"})
+	}
+
+	var response spec.GetLinksResponse
+	// format items for response
+	for _, link := range links {
+		response.Links = append(response.Links, spec.GetLinksResponseArray{
+			ID:    tripID,
+			Title: link.Title,
+			URL:   link.Url,
+		})
+	}
+
+	return spec.GetTripsTripIDLinksJSON200Response(response)
 }
 
 // Create a trip link.
 // (POST /trips/{tripId}/links)
 func (api API) PostTripsTripIDLinks(w http.ResponseWriter, r *http.Request, tripID string) *spec.Response {
-	panic("not implemented") // TODO: Implement
+	var body spec.PostTripsTripIDLinksJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		return spec.PostTripsTripIDLinksJSON400Response(spec.Error{Message: "Invalid JSON Body"})
+	}
+
+	if err := api.validator.Struct(body); err != nil {
+		return spec.PostTripsTripIDLinksJSON400Response(spec.Error{Message: "Invalid input field" + err.Error()})
+	}
+
+	id, err := uuid.Parse(tripID)
+	if err != nil {
+		return spec.PostTripsTripIDLinksJSON400Response(spec.Error{Message: "Invalid UUID"})
+	}
+
+	linkId, err := api.store.CreateTripLink(r.Context(), pgstore.CreateTripLinkParams{
+		TripID: id,
+		Title:  body.Title,
+		Url:    body.URL,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return spec.PostTripsTripIDLinksJSON400Response(spec.Error{Message: "Trip not found"})
+		}
+		api.logger.Error("Failed to insert link in trip", zap.Error(err), zap.String("trip_id", tripID))
+		return spec.PostTripsTripIDLinksJSON400Response(spec.Error{Message: "Something went wrong"})
+	}
+
+	return spec.PostTripsTripIDLinksJSON201Response(spec.CreateLinkResponse{LinkID: linkId.String()})
 }
 
 // Get a trip participants.
@@ -386,7 +440,7 @@ func (api API) GetTripsTripIDParticipants(w http.ResponseWriter, r *http.Request
 	participants, err := api.store.GetParticipants(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return spec.GetTripsTripIDParticipantsJSON400Response(spec.Error{Message: "No trip found"})
+			return spec.GetTripsTripIDParticipantsJSON400Response(spec.Error{Message: "Trip not found"})
 		}
 		api.logger.Error("Failed to get trip participants", zap.Error(err), zap.String("trip_id", tripID))
 		return spec.GetTripsTripIDParticipantsJSON400Response(spec.Error{Message: "Something went wrong"})
