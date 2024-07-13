@@ -321,6 +321,10 @@ func (api API) PostTripsTripIDInvites(w http.ResponseWriter, r *http.Request, tr
 		return spec.PostTripsTripIDInvitesJSON400Response(spec.Error{Message: "Invalid JSON Body"})
 	}
 
+	if err := api.validator.Struct(body); err != nil {
+		return spec.PostTripsTripIDInvitesJSON400Response(spec.Error{Message: "Invalid input field" + err.Error()})
+	}
+
 	id, err := uuid.Parse(tripID)
 	if err != nil {
 		return spec.PostTripsTripIDInvitesJSON400Response(spec.Error{Message: "Invalid UUID"})
